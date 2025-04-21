@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Water Quality Monitoring</title>
+
+    <!-- include Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-app.js"></script>
+
+    <link type="text/css" href="output.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <!-- include only the Firebase features as you need -->
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-firestore.js"></script>
+
+    <script>
+      // Replace with your app config object
+      const firebaseConfig = {
+        apiKey: "AIzaSyBLwOQI5R_0HCQzNH0cbVxnBqOLDWd-Kb4",
+        authDomain: "water-quality-monitoring-c4034.firebaseapp.com",
+        databaseURL:
+          "https://water-quality-monitoring-c4034-default-rtdb.firebaseio.com",
+        projectId: "water-quality-monitoring-c4034",
+        storageBucket: "water-quality-monitoring-c4034.firebasestorage.app",
+        messagingSenderId: "1212454812",
+        appId: "1:1212454812:web:533489387c9d7e70d61a59",
+      };
+
+      // Initialize firebase
+      firebase.initializeApp(firebaseConfig);
+
+      // Make auth and database references
+      const auth = firebase.auth();
+      const db = firebase.database();
+    </script>
+
+    <!-- include Tailwind CSS -->
+    <!--     <script src="https://cdn.tailwindcss.com"></script> -->
+
+    <!-- include highchartsjs to build the charts-->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script
+      src="https://kit.fontawesome.com/10b2fed3a4.js"
+      crossorigin="anonymous"
+    ></script>
+    <!-- include to use jquery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!--include icons from fontawesome-->
+    <link
+      rel="stylesheet"
+      href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
+      integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
+      crossorigin="anonymous"
+    />
+    <!-- include Gauges Javascript library-->
+    <script src="https://cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.7/all/gauge.min.js"></script>
+    <!--reference for favicon-->
+    <link rel="icon" type="image/png" href="water_icon.png" />
+    <!--reference a stylesheet-->
+  </head>
+
+  <body class="bg-[#E0E0E0]">
+    <!--TOP BAR-->
+    <!--     <div class="topnav">
+      <h1>
+        Water Quality Sensor Readings <i class="fas fa-clipboard-list"></i>
+      </h1>
+    </div> -->
+
+    <!--AUTHENTICATION BAR (USER DETAILS/LOGOUT BUTTON)-->
+    <div
+      id="authentication-bar"
+      class="bg-[#1c1838] text-white justify-items-center"
+    >
+      <div class="flex">
+        <div class="mt-3 float-right water-icon-image">
+          <img src="water_icon.png" class="h-12 w-12" alt="Water Icon" />
+        </div>
+        <p class="pb-3 mr-16 sm:mr-none user-info">
+          <span id="authentication-status">User logged in</span>
+          <span id="user-details" class="pb-3"></span>
+          <!--        <a href="/" id="logout-link">(logout)</a> -->
+          <button
+            class="logout-button py-3 px-8 rounded bg-[#2A3CDE]"
+            id="logout-button"
+          >
+            Logout
+          </button>
+        </p>
+      </div>
+    </div>
+
+    <!--CONTENT (SENSOR READINGS)-->
+
+    <div class="content-sign-in" id="content-sign-in">
+      <!--LAST UPDATE-->
+      <p>
+        <span class="date-time"
+          >Last update: <span id="lastUpdate"></span
+        ></span>
+      </p>
+      <p class="pb-3">
+        Cards:
+        <input
+          type="checkbox"
+          id="cards-checkbox"
+          name="cards-checkbox"
+          checked
+        />
+        <!-- Gauges: <input type="checkbox" id="gauges-checkbox" name="gauges-checkbox" checked> -->
+        Charts:
+        <input type="checkbox" id="charts-checkbox" name="charts-checkbox" />
+      </p>
+      <div id="cards-div">
+        <div class="cards">
+          <!--TEMPERATURE-->
+          <div class="card">
+            <p>
+              <i class="fas fa-thermometer-half" style="color: #059e05"></i>
+              TEMPERATURE
+            </p>
+            <p>
+              <span class="reading"><span id="temp"></span> &deg;C</span>
+            </p>
+          </div>
+          <!--HUMIDITY-->
+          <div class="card">
+            <p>
+              <i class="fa-solid fa-flask" style="color: #e60505"></i> pH Level
+            </p>
+            <p>
+              <span class="reading"><span id="ph"></span> level</span>
+            </p>
+          </div>
+          <!--PRESSURE-->
+          <div class="card">
+            <p>
+              <i
+                class="fa-solid fa-glass-water-droplet"
+                style="color: #e08b0c"
+              ></i>
+              Turbidity
+            </p>
+            <p>
+              <span class="reading"><span id="turb"></span> level</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <!--CHARTS-->
+      <div id="charts-div" style="display: none">
+        <!--SET NUMBER OF READINGS INPUT FIELD-->
+        <div>
+          <p class="pb-3">
+            Number of readings:
+            <select id="charts-range" class="border p-2 rounded">
+              <!--               <option value="1h">Last Hour</option> -->
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </select>
+          </p>
+        </div>
+        <!--TEMPERATURE-CHART-->
+        <div class="cards pb-3">
+          <div class="card">
+            <p>
+              <i class="fas fa-thermometer-half" style="color: #059e05"></i>
+              TEMPERATURE CHART
+            </p>
+            <div id="chart-temperature" class="chart-container"></div>
+          </div>
+        </div>
+        <!--Ph-CHART-->
+        <div class="cards pb-3">
+          <div class="card">
+            <p>
+              <i class="fa-solid fa-flask" style="color: #e60505"></i> pH CHART
+            </p>
+            <div id="chart-ph" class="chart-container"></div>
+          </div>
+        </div>
+        <!--TURBIDITY-CHART-->
+        <div class="cards">
+          <div class="card">
+            <p>
+              <i
+                class="fa-solid fa-glass-water-droplet"
+                style="color: #e08b0c"
+              ></i>
+              Turbidity CHART
+            </p>
+            <div id="chart-turbidity" class="chart-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!--BUTTONS TO HANDLE DATA-->
+      <p class="pt-3 pb-3">
+        <!--View data button-->
+        <button
+          id="view-data-button"
+          class="bg-[#2A3CDE] py-3 px-6 rounded text-white"
+        >
+          View all data
+        </button>
+        <!--Hide data button-->
+        <button
+          id="hide-data-button"
+          style="display: none"
+          class="bg-[#2A3CDE] py-3 px-6 rounded text-white"
+        >
+          Hide data
+        </button>
+        <!--Delete data button-->
+        <button
+          id="delete-button"
+          class="deletebtn py-3 px-6 rounded text-white"
+        >
+          Delete data
+        </button>
+      </p>
+      <!--Modal to delete data-->
+      <div id="delete-modal" class="modal" style="display: none">
+        <span
+          onclick="document.getElementById('delete-modal').style.display='none'"
+          class="close"
+          title="Close Modal"
+          >×</span
+        >
+        <form id="delete-data-form" class="modal-content" action="/">
+          <div class="container">
+            <h1>Delete Data</h1>
+            <p>Are you sure you want to delete all data from database?</p>
+            <div class="clearfix">
+              <button
+                type="button"
+                onclick="document.getElementById('delete-modal').style.display='none'"
+                class="cancelbtn"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onclick="document.getElementById('delete-modal').style.display='none'"
+                class="deletebtn"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!--TABLE WITH ALL DATA-->
+      <div class="cards">
+        <div class="card" id="table-container" style="display: none">
+          <table id="readings-table">
+            <tr id="theader">
+              <th>Timestamp</th>
+              <th>Temp (ºC)</th>
+              <th>pH (Level)</th>
+              <th>Turbidity (Level)</th>
+            </tr>
+            <tbody id="tbody"></tbody>
+          </table>
+          <p>
+            <button
+              id="load-data"
+              style="display: none"
+              class="bg-red-400 w-full text-white"
+            >
+              More results...
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!--INCLUDE JS FILES-->
+    <script src="scripts/checkdb.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/charts-definition.js"></script>
+    <script src="scripts/dashboard.js"></script>
+  </body>
+</html>
