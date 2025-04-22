@@ -263,23 +263,33 @@
       <div class="cards">
         <div class="card" id="table-container" style="display: none">
           <table id="readings-table">
-            <tr id="theader">
-              <th>Timestamp</th>
-              <th>Temp (ºC)</th>
-              <th>pH (Level)</th>
-              <th>Turbidity (Level)</th>
-            </tr>
+            <thead>
+              <tr id="theader">
+                <th>Timestamp</th>
+                <th>Temp (ºC)</th>
+                <th>pH (Level)</th>
+                <th>Turbidity (Level)</th>
+              </tr>
+            </thead>
             <tbody id="tbody"></tbody>
           </table>
-          <p>
-            <button
-              id="load-data"
-              style="display: none"
-              class="bg-red-400 w-full text-white"
-            >
-              More results...
+          <div class="pagination-controls">
+            <button id="prev-page" class="pagination-button" disabled>
+              Previous
             </button>
-          </p>
+            <span id="page-info">Page 1 of 1</span>
+            <input
+              type="number"
+              id="page-input"
+              min="1"
+              value="1"
+              class="w-12 h-8 text-center border rounded text-sm px-1 py-0"
+            />
+            <button id="go-page" class="pagination-button">Search</button>
+            <button id="next-page" class="pagination-button" disabled>
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

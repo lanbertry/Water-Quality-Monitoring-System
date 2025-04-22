@@ -318,89 +318,85 @@ const setupUI = (user) => {
     // Table functionality
     let lastReadingTimestamp;
 
-    function createTable() {
-      dbRef
-        .orderByKey()
-        .limitToLast(100)
-        .once("value", function (snapshot) {
-          if (snapshot.exists()) {
-            var firstRun = true;
-            snapshot.forEach((childSnapshot) => {
-              var jsonData = childSnapshot.toJSON();
-              var temperature = jsonData.temperature;
-              var ph_level = jsonData.ph_level;
-              var turbidity = jsonData.turbidity;
-              var timestamp = jsonData.timestamp;
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let allTableData = [];
+    let totalPages = 1;
 
-              var content = "<tr>";
-              content += "<td>" + epochToDateTime(timestamp) + "</td>";
-              content += "<td>" + temperature + "</td>";
-              content += "<td>" + ph_level + "</td>";
-              content += "<td>" + turbidity + "</td>";
-              content += "</tr>";
-              $("#tbody").prepend(content);
-
-              if (firstRun) {
-                lastReadingTimestamp = timestamp;
-                firstRun = false;
-              }
-            });
-          }
-        });
+    function loadTableData() {
+      // Convert currentData to array and sort by timestamp (newest first)
+      allTableData = [...currentData].sort((a, b) => b.timestamp - a.timestamp);
+      updateTable();
     }
 
-    function appendToTable() {
-      const olderData = currentData
-        .filter((item) => item.timestamp < lastReadingTimestamp)
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 100); // Get next 100 older readings
+    function updateTable() {
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
 
-      if (olderData.length === 0) {
-        loadDataButtonElement.style.display = "none";
-        return;
-      }
+      totalPages = Math.ceil(allTableData.length / rowsPerPage);
+      const startIdx = (currentPage - 1) * rowsPerPage;
+      const endIdx = startIdx + rowsPerPage;
+      const paginatedData = allTableData.slice(startIdx, endIdx);
 
-      olderData.forEach((data) => {
+      // Add rows
+      paginatedData.forEach((data) => {
         const row = `<tr>
-          <td>${epochToDateTime(data.timestamp)}</td>
-          <td>${data.temperature.toFixed(2)}</td>
-          <td>${data.ph_level.toFixed(2)}</td>
-          <td>${data.turbidity.toFixed(2)}</td>
-        </tr>`;
-        $("#tbody").append(row);
+      <td>${epochToDateTime(data.timestamp)}</td>
+      <td>${data.temperature.toFixed(2)}</td>
+      <td>${data.ph_level.toFixed(2)}</td>
+      <td>${data.turbidity.toFixed(2)}</td>
+    </tr>`;
+        tbody.innerHTML += row;
       });
 
-      lastReadingTimestamp = olderData[olderData.length - 1].timestamp;
+      // Update page info and input
+      document.getElementById(
+        "page-info"
+      ).textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById("page-input").value = currentPage;
+
+      // Enable/disable buttons
+      document.getElementById("prev-page").disabled = currentPage === 1;
+      document.getElementById("next-page").disabled =
+        currentPage === totalPages;
+      document.getElementById("page-input").max = totalPages;
     }
 
-    /*     function createTable() {
-      $("#tbody").empty();
-      const tableData = processDataForRange(currentData, "24h"); // Show raw data for table
-
-      tableData.forEach((data) => {
-        const row = `<tr>
-          <td>${epochToDateTime(data.timestamp)}</td>
-          <td>${data.temperature.toFixed(2)}</td>
-          <td>${data.ph_level.toFixed(2)}</td>
-          <td>${data.turbidity.toFixed(2)}</td>
-        </tr>`;
-        $("#tbody").append(row);
-      });
-
-      if (tableData.length > 0) {
-        lastReadingTimestamp = tableData[tableData.length - 1].timestamp;
+    function goToPage(page) {
+      page = parseInt(page);
+      if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        updateTable();
       }
-    } */
+    }
+
+    document.getElementById("prev-page").addEventListener("click", () => {
+      goToPage(currentPage - 1);
+    });
+
+    document.getElementById("next-page").addEventListener("click", () => {
+      goToPage(currentPage + 1);
+    });
+
+    document.getElementById("go-page").addEventListener("click", () => {
+      const pageInput = document.getElementById("page-input");
+      goToPage(pageInput.value);
+    });
+
+    document.getElementById("page-input").addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        goToPage(e.target.value);
+      }
+    });
 
     viewDataButtonElement.addEventListener("click", () => {
       tableContainerElement.style.display = "block";
       viewDataButtonElement.style.display = "none";
       hideDataButtonElement.style.display = "inline-block";
-      loadDataButtonElement.style.display = "inline-block";
-      createTable();
+      currentPage = 1; // Reset to first page
+      loadTableData();
     });
-
-    loadDataButtonElement.addEventListener("click", appendToTable);
+    /*     loadDataButtonElement.addEventListener("click", appendToTable); */
 
     hideDataButtonElement.addEventListener("click", () => {
       tableContainerElement.style.display = "none";
